@@ -50,6 +50,7 @@ export type Notification = {
 
 export type CandidateProfile = {
   user: string;
+  category: Category | null;
   skills: string[];
   experienceYears: number;
   bio: string;
@@ -59,6 +60,7 @@ export type CandidateProfile = {
 export type CompanyProfile = {
   user: string;
   companyName: string;
+  category: Category | null;
   logoUrl: string | null;
   about: string;
   website: string;

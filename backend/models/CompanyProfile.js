@@ -4,6 +4,7 @@ const companyProfileSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
     companyName: { type: String, required: true, trim: true },
+    category: { type: mongoose.Schema.Types.ObjectId, ref: "Category", default: null }, // faoliyat sohasi
     logoUrl: { type: String, default: null },
     about: { type: String, default: "" },
     website: { type: String, default: "" },

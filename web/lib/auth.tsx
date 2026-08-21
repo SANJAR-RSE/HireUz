@@ -2,13 +2,13 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { apiFetch, ApiError } from "./api";
-import type { Role, User } from "./types";
+import type { User } from "./types";
 
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (data: { name: string; email: string; password: string; role: Role; companyName?: string }) => Promise<User>;
+  register: (form: FormData) => Promise<User>;
   logout: () => void;
 };
 
@@ -48,10 +48,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.user;
   }
 
-  async function register(payload: { name: string; email: string; password: string; role: Role; companyName?: string }) {
+  async function register(form: FormData) {
     const data = await apiFetch<{ token: string; user: User }>("/auth/register", {
       method: "POST",
-      body: payload,
+      body: form,
+      isForm: true,
       auth: false,
     });
     localStorage.setItem("hireuz_token", data.token);

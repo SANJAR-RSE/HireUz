@@ -7,7 +7,7 @@ const generateLinkCode = require("../utils/generateLinkCode");
 
 async function register(req, res, next) {
   try {
-    const { name, email, password, role, companyName } = req.body;
+    const { name, email, password, role, companyName, category } = req.body;
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "Barcha maydonlarni to'ldiring" });
@@ -17,6 +17,9 @@ async function register(req, res, next) {
     }
     if (password.length < 6) {
       return res.status(400).json({ message: "Parol kamida 6 belgidan iborat bo'lishi kerak" });
+    }
+    if (role === "candidate" && !category) {
+      return res.status(400).json({ message: "Sohangizni tanlang (masalan: Dasturlash, Dizayn)" });
     }
 
     const existing = await User.findOne({ email: email.toLowerCase() });
@@ -28,9 +31,10 @@ async function register(req, res, next) {
     const user = await User.create({ name, email, password: hashed, role });
 
     if (role === "candidate") {
-      await CandidateProfile.create({ user: user._id });
+      const cvUrl = req.file ? `/uploads/${req.file.filename}` : null;
+      await CandidateProfile.create({ user: user._id, category: category || null, cvUrl });
     } else {
-      await CompanyProfile.create({ user: user._id, companyName: companyName || name });
+      await CompanyProfile.create({ user: user._id, companyName: companyName || name, category: category || null });
     }
 
     const token = generateToken(user);

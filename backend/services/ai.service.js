@@ -19,13 +19,17 @@ async function recommendJobsForCandidate(userId, queryText = "") {
   const keywords = [...skills, ...queryText.split(/\s+/).filter(Boolean)];
 
   const jobs = await Job.find({ isActive: true }).populate("category", "name");
-  if (keywords.length === 0) {
+  if (keywords.length === 0 && !profile?.category) {
     return jobs.slice(0, 5).map((j) => ({ job: j, matchScore: 0 }));
   }
 
   const scored = jobs.map((job) => {
     const haystack = `${job.title} ${job.description} ${job.requirements}`;
-    const matchScore = scoreText(haystack, keywords);
+    let matchScore = scoreText(haystack, keywords);
+    // Nomzod o'z sohasiga (masalan Dasturlash) mos vakansiyani ko'rsak, moslik ustuvor bo'ladi.
+    if (profile?.category && job.category && String(job.category._id) === String(profile.category)) {
+      matchScore += 2;
+    }
     return { job, matchScore };
   });
 

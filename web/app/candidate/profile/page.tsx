@@ -3,34 +3,45 @@
 import { useEffect, useState } from "react";
 import { Protected } from "@/components/protected";
 import { apiFetch, ApiError } from "@/lib/api";
-import type { CandidateProfile } from "@/lib/types";
+import type { CandidateProfile, Category } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingState, ErrorState } from "@/components/state-views";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 function CandidateProfileForm() {
   const [profile, setProfile] = useState<CandidateProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [category, setCategory] = useState("");
   const [skillsInput, setSkillsInput] = useState("");
   const [experienceYears, setExperienceYears] = useState(0);
   const [bio, setBio] = useState("");
+  const [cv, setCv] = useState<File | null>(null);
+  const [currentCvUrl, setCurrentCvUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    apiFetch<{ categories: Category[] }>("/categories", { auth: false })
+      .then((d) => setCategories(d.categories))
+      .catch(() => {});
+
     apiFetch<{ profile: CandidateProfile | null }>("/profiles/me")
       .then((d) => {
         if (d.profile) {
           setProfile(d.profile);
+          setCategory(d.profile.category?._id || "");
           setSkillsInput((d.profile.skills || []).join(", "));
           setExperienceYears(d.profile.experienceYears || 0);
           setBio(d.profile.bio || "");
+          setCurrentCvUrl(d.profile.cvUrl || null);
         } else {
-          setProfile({ user: "", skills: [], experienceYears: 0, bio: "", cvUrl: null });
+          setProfile({ user: "", category: null, skills: [], experienceYears: 0, bio: "", cvUrl: null });
         }
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Profilni yuklab bo'lmadi"));
@@ -40,8 +51,15 @@ function CandidateProfileForm() {
     e.preventDefault();
     setSaving(true);
     try {
-      const skills = skillsInput.split(",").map((s) => s.trim()).filter(Boolean);
-      await apiFetch("/profiles/me", { method: "PUT", body: { skills, experienceYears, bio } });
+      const form = new FormData();
+      form.append("skills", skillsInput);
+      form.append("experienceYears", String(experienceYears));
+      form.append("bio", bio);
+      if (category) form.append("category", category);
+      if (cv) form.append("cv", cv);
+      const data = await apiFetch<{ profile: CandidateProfile }>("/profiles/me", { method: "PUT", body: form, isForm: true });
+      setCurrentCvUrl(data.profile.cvUrl || null);
+      setCv(null);
       toast.success("Profil saqlandi");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Saqlashda xatolik yuz berdi");
@@ -71,10 +89,27 @@ function CandidateProfileForm() {
       <Card>
         <CardHeader>
           <CardTitle>Nomzod profili</CardTitle>
-          <CardDescription>Ko&apos;nikmalaringiz ariza berishda va AI tavsiyasida ishlatiladi.</CardDescription>
+          <CardDescription>Soha, ko&apos;nikmalar va rezyume ariza berishda va AI tavsiyasida ishlatiladi.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">Sohangiz</Label>
+              <Select value={category} onValueChange={(v) => setCategory(v ?? "")}>
+                <SelectTrigger id="category" className="w-full">
+                  <SelectValue placeholder="Tanlang">
+                    {(v: string | null) => (v ? categories.find((c) => c._id === v)?.name : "Tanlang")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="skills">Ko&apos;nikmalar (vergul bilan ajrating)</Label>
               <Input id="skills" value={skillsInput} onChange={(e) => setSkillsInput(e.target.value)} placeholder="React, Node.js, Figma" />
@@ -92,6 +127,20 @@ function CandidateProfileForm() {
             <div className="space-y-2">
               <Label htmlFor="bio">O&apos;zingiz haqingizda</Label>
               <Textarea id="bio" rows={4} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Qisqacha tajribangiz haqida yozing..." />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cv">Rezyume / CV (PDF/DOC)</Label>
+              {currentCvUrl && !cv && (
+                <a
+                  href={`${(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api$/, "")}${currentCvUrl}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 text-sm text-primary hover:underline"
+                >
+                  <FileText className="h-3.5 w-3.5" /> Joriy CV faylini ko&apos;rish
+                </a>
+              )}
+              <Input id="cv" type="file" accept=".pdf,.doc,.docx" onChange={(e) => setCv(e.target.files?.[0] || null)} />
             </div>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

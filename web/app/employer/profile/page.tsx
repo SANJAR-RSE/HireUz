@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { Protected } from "@/components/protected";
 import { apiFetch, ApiError } from "@/lib/api";
-import type { CompanyProfile } from "@/lib/types";
+import type { CompanyProfile, Category } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingState, ErrorState } from "@/components/state-views";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -17,17 +18,24 @@ function EmployerProfileForm() {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [category, setCategory] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [about, setAbout] = useState("");
   const [website, setWebsite] = useState("");
 
   useEffect(() => {
+    apiFetch<{ categories: Category[] }>("/categories", { auth: false })
+      .then((d) => setCategories(d.categories))
+      .catch(() => {});
+
     apiFetch<{ profile: CompanyProfile | null }>("/profiles/me")
       .then((d) => {
         if (d.profile) {
           setCompanyName(d.profile.companyName || "");
           setAbout(d.profile.about || "");
           setWebsite(d.profile.website || "");
+          setCategory(d.profile.category?._id || "");
         }
         setLoaded(true);
       })
@@ -38,7 +46,7 @@ function EmployerProfileForm() {
     e.preventDefault();
     setSaving(true);
     try {
-      await apiFetch("/profiles/me", { method: "PUT", body: { companyName, about, website } });
+      await apiFetch("/profiles/me", { method: "PUT", body: { companyName, about, website, category: category || undefined } });
       toast.success("Kompaniya profili saqlandi");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Saqlashda xatolik yuz berdi");
@@ -75,6 +83,23 @@ function EmployerProfileForm() {
             <div className="space-y-2">
               <Label htmlFor="companyName">Kompaniya nomi</Label>
               <Input id="companyName" required value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Faoliyat sohasi</Label>
+              <Select value={category} onValueChange={(v) => setCategory(v ?? "")}>
+                <SelectTrigger id="category" className="w-full">
+                  <SelectValue placeholder="Tanlang">
+                    {(v: string | null) => (v ? categories.find((c) => c._id === v)?.name : "Tanlang")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="website">Veb-sayt</Label>
