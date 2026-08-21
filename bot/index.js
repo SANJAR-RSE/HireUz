@@ -104,4 +104,16 @@ if (!BOT_TOKEN) {
   process.exit(1);
 }
 
+// Render bepul tarifida faqat "web service" turi qo'llab-quvvatlanadi — bot esa
+// tashqi so'rov qabul qilmaydi (long-polling orqali ishlaydi). Shuning uchun
+// platforma port tekshiruvidan o'tishi uchun minimal HTTP server qo'shildi.
+const http = require("http");
+const PORT = process.env.PORT || 3001;
+http
+  .createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("HireUz bot ishlayapti (long-polling)");
+  })
+  .listen(PORT, () => console.log(`Bot health-check server ${PORT}-portda`));
+
 pollLoop();
