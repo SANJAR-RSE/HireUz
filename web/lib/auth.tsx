@@ -26,8 +26,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     apiFetch<{ user: User }>("/auth/me")
       .then((data) => setUser(data.user))
-      .catch(() => {
-        localStorage.removeItem("hireuz_token");
+      .catch((err) => {
+        // Faqat token haqiqatan yaroqsiz bo'lsa (401) chiqarib yuboramiz —
+        // vaqtinchalik tarmoq xatosi yoki backend cold-start sababli
+        // foydalanuvchini sessiyadan chiqarib qo'ymaslik kerak.
+        if (err instanceof ApiError && err.status === 401) {
+          localStorage.removeItem("hireuz_token");
+        }
       })
       .finally(() => setLoading(false));
   }, []);
