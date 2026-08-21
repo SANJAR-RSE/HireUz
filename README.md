@@ -60,9 +60,11 @@ Parol barchasi uchun: `password123`
 
 ## Live URL'lar
 
-- Web: _(deploydan keyin to'ldiriladi)_
-- Backend API: _(deploydan keyin to'ldiriladi)_
-- Bot: `@hire_uz_bot`
+- Web: https://hireuz-web-sanjar2.vercel.app
+- Backend API: https://hireuz-backend.onrender.com/api
+- Bot: [@hire_uz_bot](https://t.me/hire_uz_bot)
+
+Render bepul tarifida cold start bo'lishi mumkin — birinchi so'rov 30–50s cho'zilishi mumkin, demo oldidan bir marta backend'ga so'rov yuborib "isiting" (`curl https://hireuz-backend.onrender.com/api/health`).
 
 ## Muhim eslatma
 
